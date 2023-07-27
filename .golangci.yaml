@@ -8,6 +8,7 @@ linters:
     - godox
     - nlreturn
     - exhaustruct
+    - depguard
     - gofmt  # gofumpt still enabled
     - goimports  # conflicts with gofumpt
     # deprecated

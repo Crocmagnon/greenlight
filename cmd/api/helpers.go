@@ -4,13 +4,19 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"strconv"
 
 	"github.com/julienschmidt/httprouter"
 )
 
-var ErrInvalidID = errors.New("invalid id parameter")
+var (
+	ErrInvalidID         = errors.New("invalid id parameter")
+	ErrMalformedJSON     = errors.New("body contains malformed JSON")
+	ErrIncorrectJSONType = errors.New("body contains incorrect JSON type")
+	ErrEmptyBody         = errors.New("body is empty")
+)
 
 func (app *application) readIDParam(r *http.Request) (int64, error) {
 	params := httprouter.ParamsFromContext(r.Context())
@@ -42,4 +48,42 @@ func (app *application) writeJSON(w http.ResponseWriter, status int, data envelo
 	w.Write(resp) //nolint:errcheck
 
 	return nil
+}
+
+func (app *application) readJSON(_ http.ResponseWriter, r *http.Request, dst any) error {
+	err := json.NewDecoder(r.Body).Decode(dst)
+	// NO error
+	if err == nil {
+		return nil
+	}
+
+	var (
+		syntaxError           *json.SyntaxError
+		unmarshalTypeError    *json.UnmarshalTypeError
+		invalidUnmarshalError *json.InvalidUnmarshalError
+	)
+
+	switch {
+	case errors.As(err, &syntaxError):
+		return fmt.Errorf("%w (at character %d)", ErrMalformedJSON, syntaxError.Offset)
+
+	case errors.Is(err, io.ErrUnexpectedEOF):
+		return ErrMalformedJSON
+
+	case errors.As(err, &unmarshalTypeError):
+		if unmarshalTypeError.Field != "" {
+			return fmt.Errorf("%w for field %q", ErrIncorrectJSONType, unmarshalTypeError.Field)
+		}
+
+		return fmt.Errorf("%w (at character %d)", ErrIncorrectJSONType, unmarshalTypeError.Offset)
+
+	case errors.Is(err, io.EOF):
+		return ErrEmptyBody
+
+	case errors.As(err, &invalidUnmarshalError):
+		panic(err)
+
+	default:
+		return fmt.Errorf("unhandled error: %w", err)
+	}
 }

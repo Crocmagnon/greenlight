@@ -5,8 +5,6 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/Crocmagnon/greenlight/internal/validator"
-
 	"github.com/Crocmagnon/greenlight/internal/data"
 	"github.com/Crocmagnon/greenlight/internal/validator"
 )

@@ -1,12 +1,9 @@
-issues:
-  fix: true
-  max-issues-per-linter: 0
-  max-same-issues: 0
+run:
+  deadline: 10m
 linters:
   enable-all: true
   disable:
     - godox
-    - nlreturn
     - exhaustruct
     - depguard
     - gofmt  # gofumpt still enabled
@@ -22,11 +19,121 @@ linters:
     - structcheck
     - nosnakecase
     - maligned
+issues:
+  fix: true
+  max-issues-per-linter: 0
+  max-same-issues: 0
+  exclude-rules:
+    - path: _test\.go
+      linters:
+        - gosec
+      text: G404  # use of weak random number generator (math/rand)
+  include:
+    - EXC0001
+    - EXC0002
+    - EXC0003
+    - EXC0004
+    - EXC0005
+    - EXC0006
+    - EXC0007
+    - EXC0009
+    - EXC0010
+    - EXC0011
+    - EXC0012
+    - EXC0013
+    - EXC0014
+    - EXC0015
 linters-settings:
   varnamelen:
+    max-distance: 8
     ignore-names:
       - id
       - db
     ignore-decls:
       - w http.ResponseWriter
       - r *http.Request
+  nlreturn:
+    block-size: 3
+  nolintlint:
+    require-specific: true
+  interfacebloat:
+    max: 3
+  govet:
+    enable-all: true
+    disable:
+      - fieldalignment
+  gocognit:
+    min-complexity: 10
+  revive:
+    ignore-generated-header: true
+    rules:
+      - name: add-constant
+        arguments:
+          - maxLitCount: "3"
+            allowStrs: '""'
+            allowInts: 0,1,2
+            allowFloats: 0.0,0.,1.0,1.,2.0,2.
+            ignoreFuncs: os\.*,fmt\.Println,make
+      - name: argument-limit
+        arguments:
+          - 4
+      - name: atomic
+      - name: bare-return
+      - name: blank-imports
+      - name: bool-literal-in-expr
+      - name: call-to-gc
+      - name: confusing-naming
+      - name: confusing-results
+      - name: constant-logical-expr
+      - name: context-as-argument
+      - name: context-keys-type
+      - name: datarace
+      - name: deep-exit
+      - name: defer
+      - name: dot-imports
+      - name: duplicated-imports
+      - name: empty-block
+      - name: early-return
+      - name: empty-block
+      - name: empty-lines
+      - name: error-naming
+      - name: error-return
+      - name: error-strings
+      - name: errorf
+      - name: exported
+        arguments:
+          - checkPrivateReceivers
+          - sayRepetitiveInsteadOfStutters
+      - name: flag-parameter
+      - name: function-result-limit
+        arguments:
+          - 3
+      - name: get-return
+      - name: identical-branches
+      - name: if-return
+      - name: increment-decrement
+      - name: indent-error-flow
+      - name: import-shadowing
+      - name: modifies-parameter
+      - name: modifies-value-receiver
+      - name: range
+      - name: range-val-in-closure
+      - name: range-val-address
+      - name: receiver-naming
+      - name: redefines-builtin-id
+      - name: string-of-int
+      - name: struct-tag
+      - name: superfluous-else
+      - name: time-equal
+      - name: time-naming
+      - name: unconditional-recursion
+      - name: unexported-return
+      - name: unnecessary-stmt
+      - name: unreachable-code
+      - name: unused-parameter
+      - name: unused-receiver
+      - name: use-any
+      - name: useless-break
+      - name: var-declaration
+      - name: var-naming
+      - name: waitgroup-by-value

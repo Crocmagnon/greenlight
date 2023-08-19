@@ -58,7 +58,7 @@ func main() {
 		logger.Fatal(err)
 	}
 
-	defer db.Close()
+	defer db.Close() //nolint:errcheck
 
 	logger.Printf("database connection established")
 

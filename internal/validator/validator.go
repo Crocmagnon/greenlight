@@ -1,3 +1,4 @@
+// Package validator provides tools to validate data and report errors.
 package validator
 
 import (
@@ -33,7 +34,7 @@ func (v *Validator) AddError(key, message string) {
 }
 
 // Check adds an error message to the map only if a validation check is not 'ok'.
-func (v *Validator) Check(ok bool, key, message string) {
+func (v *Validator) Check(ok bool, key, message string) { //nolint:revive // "ok" is not a control-coupling flag.
 	if !ok {
 		v.AddError(key, message)
 	}

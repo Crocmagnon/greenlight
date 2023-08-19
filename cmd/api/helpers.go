@@ -16,6 +16,7 @@ const (
 	maxBytes = 1_048_576
 )
 
+// Errors used during validation and returned to the consumer.
 var (
 	ErrInvalidID         = errors.New("invalid id parameter")
 	ErrMalformedJSON     = errors.New("body contains malformed JSON")
@@ -26,10 +27,15 @@ var (
 	ErrMultipleJSON      = errors.New("body must only contain a single JSON value")
 )
 
-func (app *application) readIDParam(r *http.Request) (int64, error) {
+func (*application) readIDParam(r *http.Request) (int64, error) {
 	params := httprouter.ParamsFromContext(r.Context())
 
-	id, err := strconv.ParseInt(params.ByName("id"), 10, 64)
+	const (
+		base    = 10
+		bitSize = 64
+	)
+
+	id, err := strconv.ParseInt(params.ByName("id"), base, bitSize)
 	if err != nil || id < 1 {
 		return 0, ErrInvalidID
 	}
@@ -39,7 +45,7 @@ func (app *application) readIDParam(r *http.Request) (int64, error) {
 
 type envelope map[string]any
 
-func (app *application) writeJSON(w http.ResponseWriter, status int, data envelope, headers http.Header) error {
+func (*application) writeJSON(w http.ResponseWriter, status int, data envelope, headers http.Header) error {
 	resp, err := json.Marshal(data)
 	if err != nil {
 		return fmt.Errorf("encoding to json: %w", err)
@@ -58,7 +64,7 @@ func (app *application) writeJSON(w http.ResponseWriter, status int, data envelo
 	return nil
 }
 
-func (app *application) readJSON(w http.ResponseWriter, r *http.Request, dst any) error {
+func (*application) readJSON(w http.ResponseWriter, r *http.Request, dst any) error {
 	r.Body = http.MaxBytesReader(w, r.Body, maxBytes)
 
 	dec := json.NewDecoder(r.Body)

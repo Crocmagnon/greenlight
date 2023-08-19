@@ -50,7 +50,7 @@ func (app *application) showMovieHandler(w http.ResponseWriter, r *http.Request)
 		ID:        id,
 		CreatedAt: time.Now(),
 		Title:     "Casablanca",
-		Runtime:   102, //nolint:gomnd // only for testing purposes
+		Runtime:   102, //nolint:gomnd,revive // only for testing purposes
 		Genres:    []string{"drama", "romance", "war"},
 		Version:   1,
 	}

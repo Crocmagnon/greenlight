@@ -7,8 +7,11 @@ import (
 	"strings"
 )
 
+// ErrInvalidRuntimeFormat is returned when unmarshaling JSON.
+// The expected format is "\d+ mins".
 var ErrInvalidRuntimeFormat = errors.New("invalid runtime format")
 
+// Runtime represents the duration of a movie.
 type Runtime int32
 
 // MarshalJSON implements json.Marshaler.
@@ -34,7 +37,12 @@ func (r *Runtime) UnmarshalJSON(jsonValue []byte) error {
 		return ErrInvalidRuntimeFormat
 	}
 
-	i, err := strconv.ParseInt(parts[0], 10, 32)
+	const (
+		base    = 10
+		bitSize = 32
+	)
+
+	i, err := strconv.ParseInt(parts[0], base, bitSize)
 	if err != nil {
 		return ErrInvalidRuntimeFormat
 	}

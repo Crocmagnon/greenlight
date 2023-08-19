@@ -12,6 +12,10 @@ import (
 	"github.com/julienschmidt/httprouter"
 )
 
+const (
+	maxBytes = 1_048_576
+)
+
 var (
 	ErrInvalidID         = errors.New("invalid id parameter")
 	ErrMalformedJSON     = errors.New("body contains malformed JSON")
@@ -54,13 +58,7 @@ func (app *application) writeJSON(w http.ResponseWriter, status int, data envelo
 	return nil
 }
 
-//nolint:cyclop // mostly error handling
 func (app *application) readJSON(w http.ResponseWriter, r *http.Request, dst any) error {
-	const (
-		maxBytes           = 1_048_576
-		unknownFieldPrefix = "json: unknown field "
-	)
-
 	r.Body = http.MaxBytesReader(w, r.Body, maxBytes)
 
 	dec := json.NewDecoder(r.Body)
@@ -68,43 +66,7 @@ func (app *application) readJSON(w http.ResponseWriter, r *http.Request, dst any
 
 	err := dec.Decode(dst)
 	if err != nil {
-		var (
-			syntaxError           *json.SyntaxError
-			unmarshalTypeError    *json.UnmarshalTypeError
-			invalidUnmarshalError *json.InvalidUnmarshalError
-			maxBytesError         *http.MaxBytesError
-		)
-
-		switch {
-		case errors.As(err, &syntaxError):
-			return fmt.Errorf("%w (at character %d)", ErrMalformedJSON, syntaxError.Offset)
-
-		case errors.Is(err, io.ErrUnexpectedEOF):
-			return ErrMalformedJSON
-
-		case errors.As(err, &unmarshalTypeError):
-			if unmarshalTypeError.Field != "" {
-				return fmt.Errorf("%w for field %q", ErrIncorrectJSONType, unmarshalTypeError.Field)
-			}
-
-			return fmt.Errorf("%w (at character %d)", ErrIncorrectJSONType, unmarshalTypeError.Offset)
-
-		case errors.Is(err, io.EOF):
-			return ErrEmptyBody
-
-		case strings.HasPrefix(err.Error(), unknownFieldPrefix):
-			fieldName := strings.TrimPrefix(err.Error(), unknownFieldPrefix)
-			return fmt.Errorf("%w %s", ErrUnknownKey, fieldName)
-
-		case errors.As(err, &maxBytesError):
-			return fmt.Errorf("%w, max size %d bytes", ErrBodyTooLarge, maxBytes)
-
-		case errors.As(err, &invalidUnmarshalError):
-			panic(err)
-
-		default:
-			return fmt.Errorf("unhandled error: %w", err)
-		}
+		return wrapError(err)
 	}
 
 	err = dec.Decode(&struct{}{})
@@ -113,4 +75,46 @@ func (app *application) readJSON(w http.ResponseWriter, r *http.Request, dst any
 	}
 
 	return nil
+}
+
+func wrapError(err error) error {
+	const unknownFieldPrefix = "json: unknown field "
+
+	var (
+		syntaxError           *json.SyntaxError
+		unmarshalTypeError    *json.UnmarshalTypeError
+		invalidUnmarshalError *json.InvalidUnmarshalError
+		maxBytesError         *http.MaxBytesError
+	)
+
+	switch {
+	case errors.As(err, &syntaxError):
+		return fmt.Errorf("%w (at character %d)", ErrMalformedJSON, syntaxError.Offset)
+
+	case errors.Is(err, io.ErrUnexpectedEOF):
+		return ErrMalformedJSON
+
+	case errors.As(err, &unmarshalTypeError):
+		if unmarshalTypeError.Field != "" {
+			return fmt.Errorf("%w for field %q", ErrIncorrectJSONType, unmarshalTypeError.Field)
+		}
+
+		return fmt.Errorf("%w (at character %d)", ErrIncorrectJSONType, unmarshalTypeError.Offset)
+
+	case errors.Is(err, io.EOF):
+		return ErrEmptyBody
+
+	case strings.HasPrefix(err.Error(), unknownFieldPrefix):
+		fieldName := strings.TrimPrefix(err.Error(), unknownFieldPrefix)
+		return fmt.Errorf("%w %s", ErrUnknownKey, fieldName)
+
+	case errors.As(err, &maxBytesError):
+		return fmt.Errorf("%w, max size %d bytes", ErrBodyTooLarge, maxBytes)
+
+	case errors.As(err, &invalidUnmarshalError):
+		panic(err)
+
+	default:
+		return fmt.Errorf("unhandled error: %w", err)
+	}
 }

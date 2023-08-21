@@ -1,9 +1,13 @@
 package data
 
 import (
+	"database/sql"
+	"errors"
+	"fmt"
 	"time"
 
 	"github.com/Crocmagnon/greenlight/internal/validator"
+	"github.com/lib/pq"
 )
 
 // Movie holds information about a single movie.
@@ -49,4 +53,71 @@ func ValidateMovie(validate *validator.Validator, movie *Movie) {
 	validate.Check(len(movie.Genres) >= minGenres, fieldGenres, "must contain at least 1 genre")
 	validate.Check(len(movie.Genres) <= maxGenres, fieldGenres, "must not contain more than 5 genres")
 	validate.Check(validator.Unique(movie.Genres), fieldGenres, "must not contain duplicate values")
+}
+
+// MovieModel implements methods to query the database.
+type MovieModel struct {
+	DB *sql.DB
+}
+
+// Insert inserts a movie in the database.
+// Movie.CreatedAt and Movie.Version are set on the passed movie.
+func (m MovieModel) Insert(movie *Movie) error {
+	query := `
+		INSERT INTO movies (title, year, runtime, genres)
+		VALUES ($1, $2, $3, $4)
+		RETURNING id, created_at, version`
+	args := []any{movie.Title, movie.Year, movie.Runtime, pq.Array(movie.Genres)}
+
+	//nolint:execinquery // False positive
+	err := m.DB.QueryRow(query, args...).Scan(&movie.ID, &movie.CreatedAt, &movie.Version)
+	if err != nil {
+		return fmt.Errorf("inserting movie in DB: %w", err)
+	}
+
+	return nil
+}
+
+// Get returns the Movie with the given id from the DB,
+// or an error if it couldn't be found.
+func (m MovieModel) Get(id int64) (*Movie, error) {
+	if id < 1 {
+		return nil, ErrRecordNotFound
+	}
+
+	query := `
+		SELECT id, created_at, title, year, runtime, genres, version
+		FROM movies
+		WHERE id=$1`
+
+	var movie Movie
+
+	err := m.DB.QueryRow(query, id).Scan(
+		&movie.ID,
+		&movie.CreatedAt,
+		&movie.Title,
+		&movie.Year,
+		&movie.Runtime,
+		pq.Array(&movie.Genres),
+		&movie.Version,
+	)
+
+	switch {
+	case errors.Is(err, sql.ErrNoRows):
+		return nil, ErrRecordNotFound
+	case err != nil:
+		return nil, fmt.Errorf("querying movie: %w", err)
+	}
+
+	return &movie, nil
+}
+
+// Update updates a movie in the DB.
+func (MovieModel) Update(_ *Movie) error {
+	return nil
+}
+
+// Delete deletes a movie from the DB.
+func (MovieModel) Delete(_ int64) error {
+	return nil
 }

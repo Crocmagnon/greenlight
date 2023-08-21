@@ -56,8 +56,6 @@ linters-settings:
     block-size: 3
   nolintlint:
     require-specific: true
-  interfacebloat:
-    max: 3
   govet:
     enable-all: true
     disable:

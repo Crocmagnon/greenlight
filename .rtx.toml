@@ -1,5 +1,4 @@
 env_file = ".env"
 
 [tools]
-go = "prefix:1.21"
 golangci-lint = "latest"

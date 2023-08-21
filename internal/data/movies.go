@@ -113,7 +113,27 @@ func (m MovieModel) Get(id int64) (*Movie, error) {
 }
 
 // Update updates a movie in the DB.
-func (MovieModel) Update(_ *Movie) error {
+// Movie.Version is set on the passed movie.
+func (m MovieModel) Update(movie *Movie) error {
+	query := `
+		UPDATE movies
+		SET title = $1, year = $2, runtime = $3, genres = $4, version = version + 1
+		WHERE id = $5
+		RETURNING version`
+	args := []any{
+		movie.Title,
+		movie.Year,
+		movie.Runtime,
+		pq.Array(movie.Genres),
+		movie.ID,
+	}
+
+	//nolint:execinquery // False positive
+	err := m.DB.QueryRow(query, args...).Scan(&movie.Version)
+	if err != nil {
+		return fmt.Errorf("inserting movie in DB: %w", err)
+	}
+
 	return nil
 }
 

@@ -1,6 +1,7 @@
 package data
 
 import (
+	"context"
 	"database/sql"
 	"errors"
 	"fmt"
@@ -9,6 +10,8 @@ import (
 	"github.com/Crocmagnon/greenlight/internal/validator"
 	"github.com/lib/pq"
 )
+
+const timeout = 3 * time.Second
 
 // Movie holds information about a single movie.
 // It represents the entity as stored in the DB.
@@ -69,8 +72,11 @@ func (m MovieModel) Insert(movie *Movie) error {
 		RETURNING id, created_at, version`
 	args := []any{movie.Title, movie.Year, movie.Runtime, pq.Array(movie.Genres)}
 
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+
 	//nolint:execinquery // False positive
-	err := m.DB.QueryRow(query, args...).Scan(&movie.ID, &movie.CreatedAt, &movie.Version)
+	err := m.DB.QueryRowContext(ctx, query, args...).Scan(&movie.ID, &movie.CreatedAt, &movie.Version)
 	if err != nil {
 		return fmt.Errorf("inserting movie in DB: %w", err)
 	}
@@ -92,7 +98,10 @@ func (m MovieModel) Get(id int64) (*Movie, error) {
 
 	var movie Movie
 
-	err := m.DB.QueryRow(query, id).Scan(
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+
+	err := m.DB.QueryRowContext(ctx, query, id).Scan(
 		&movie.ID,
 		&movie.CreatedAt,
 		&movie.Title,
@@ -129,8 +138,11 @@ func (m MovieModel) Update(movie *Movie) error {
 		movie.Version,
 	}
 
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+
 	//nolint:execinquery // False positive
-	err := m.DB.QueryRow(query, args...).Scan(&movie.Version)
+	err := m.DB.QueryRowContext(ctx, query, args...).Scan(&movie.Version)
 
 	switch {
 	case errors.Is(err, sql.ErrNoRows):
@@ -150,7 +162,10 @@ func (m MovieModel) Delete(id int64) error {
 
 	query := `DELETE FROM movies WHERE id=$1`
 
-	res, err := m.DB.Exec(query, id)
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+
+	res, err := m.DB.ExecContext(ctx, query, id)
 	if err != nil {
 		return fmt.Errorf("deleting movie from db: %w", err)
 	}

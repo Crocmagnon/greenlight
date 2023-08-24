@@ -5,8 +5,13 @@ import (
 	"errors"
 )
 
-// ErrRecordNotFound is returned when a record couldn't be found in the DB.
-var ErrRecordNotFound = errors.New("record not found")
+var (
+	// ErrRecordNotFound is returned when a record couldn't be found in the DB.
+	ErrRecordNotFound = errors.New("record not found")
+	// ErrEditConflict is returned when updating a record with an incorrect version.
+	// This kind of update is very likely due to a data race in the update endpoint.
+	ErrEditConflict = errors.New("edit conflict")
+)
 
 // Models holds all model interfaces.
 type Models struct {

@@ -181,3 +181,45 @@ func (m MovieModel) Delete(id int64) error {
 
 	return nil
 }
+
+func (m MovieModel) GetAll(title string, genres []string, filters Filters) ([]*Movie, error) {
+	query := `SELECT id, created_at, title, year, runtime, genres, version FROM movies ORDER BY id`
+
+	ctx := context.Background()
+
+	//defer cancel()
+
+	rows, err := m.DB.QueryContext(ctx, query)
+	if err != nil {
+		return nil, fmt.Errorf("listing movies: %w", err)
+	}
+
+	defer rows.Close() //nolint:errcheck // we wouldn't do anything with this err
+
+	var movies []*Movie
+
+	for rows.Next() {
+		var movie Movie
+
+		err := rows.Scan( //nolint:govet // intentionally shadowing the var
+			&movie.ID,
+			&movie.CreatedAt,
+			&movie.Title,
+			&movie.Year,
+			&movie.Runtime,
+			pq.Array(&movie.Genres),
+			&movie.Version,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("scanning movie: %w", err)
+		}
+
+		movies = append(movies, &movie)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterating over rows: %w", err)
+	}
+
+	return movies, nil
+}

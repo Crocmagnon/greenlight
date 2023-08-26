@@ -1,6 +1,7 @@
 package data
 
 import (
+	"math"
 	"strings"
 
 	"github.com/Crocmagnon/greenlight/internal/validator"
@@ -56,4 +57,27 @@ func ValidateFilters(validate *validator.Validator, filters Filters) {
 	validate.Check(filters.PageSize > 0, "page_size", "must be greater than zero")
 	validate.Check(filters.PageSize <= maxPageSize, "page_size", "must be a maximum of 100")
 	validate.Check(validator.PermittedValue(filters.Sort, filters.SortSafelist...), "sort", "invalid sort value")
+}
+
+// Metadata holds pagination metadata.
+type Metadata struct {
+	CurrentPage  int `json:"currentPage,omitempty"`
+	PageSize     int `json:"pageSize,omitempty"`
+	FirstPage    int `json:"firstPage,omitempty"`
+	LastPage     int `json:"lastPage,omitempty"`
+	TotalRecords int `json:"totalRecords,omitempty"`
+}
+
+func calculateMetadata(totalRecords, page, pageSize int) Metadata {
+	if totalRecords == 0 {
+		return Metadata{}
+	}
+
+	return Metadata{
+		CurrentPage:  page,
+		PageSize:     pageSize,
+		FirstPage:    1,
+		LastPage:     int(math.Ceil(float64(totalRecords) / float64(pageSize))),
+		TotalRecords: totalRecords,
+	}
 }

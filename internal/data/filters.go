@@ -33,6 +33,14 @@ func (f Filters) sortDirection() string {
 	return "ASC"
 }
 
+func (f Filters) limit() int {
+	return f.PageSize
+}
+
+func (f Filters) offset() int {
+	return (f.Page - 1) * f.PageSize
+}
+
 // ValidateFilters validates filters.
 // The passed validator will contain all detected errors.
 // The caller is expected to call [validator.Validator.Valid]

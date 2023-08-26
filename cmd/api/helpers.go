@@ -6,9 +6,11 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"strconv"
 	"strings"
 
+	"github.com/Crocmagnon/greenlight/internal/validator"
 	"github.com/julienschmidt/httprouter"
 )
 
@@ -123,4 +125,40 @@ func wrapError(err error) error {
 	default:
 		return fmt.Errorf("unhandled error: %w", err)
 	}
+}
+
+func (*application) readString(qs url.Values, key string, defaultValue string) string {
+	s := qs.Get(key)
+
+	if s == "" {
+		return defaultValue
+	}
+
+	return s
+}
+
+func (*application) readCSV(qs url.Values, key string, defaultValue []string) []string {
+	s := qs.Get(key)
+
+	if s == "" {
+		return defaultValue
+	}
+
+	return strings.Split(s, ",")
+}
+
+func (*application) readInt(qs url.Values, key string, defaultValue int, validate *validator.Validator) int {
+	s := qs.Get(key)
+
+	if s == "" {
+		return defaultValue
+	}
+
+	i, err := strconv.Atoi(s)
+	if err != nil {
+		validate.AddError(key, "must be an integer value")
+		return defaultValue
+	}
+
+	return i
 }

@@ -35,6 +35,13 @@ issues:
       linters:
         - revive
       text: "add-constant: avoid magic numbers like"
+    - path: cmd/api/server\.go
+      linters:
+        - gomnd
+    - path: cmd/api/server\.go
+      linters:
+        - revive
+      text: "add-constant: avoid magic numbers like"
   include:
     - EXC0001
     - EXC0002

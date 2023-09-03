@@ -1,6 +1,8 @@
 package main
 
 import (
+	"context"
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
@@ -22,16 +24,20 @@ func (app *application) serve() error {
 		ErrorLog:     log.New(app.logger, "", 0),
 	}
 
+	shutdownError := make(chan error)
+	_ = shutdownError
+
 	go func() {
 		quit := make(chan os.Signal, 1)
-
 		signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
-
 		s := <-quit
 
-		app.logger.PrintInfo("caught signal", jsonlog.Properties{"signal": s.String()})
+		app.logger.PrintInfo("shutting down server", jsonlog.Properties{"signal": s.String()})
 
-		os.Exit(0)
+		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		defer cancel()
+
+		shutdownError <- srv.Shutdown(ctx)
 	}()
 
 	app.logger.PrintInfo("starting server", jsonlog.Properties{
@@ -40,9 +46,16 @@ func (app *application) serve() error {
 	})
 
 	err := srv.ListenAndServe()
-	if err != nil {
+	if !errors.Is(err, http.ErrServerClosed) {
 		return fmt.Errorf("serving http: %w", err)
 	}
+
+	err = <-shutdownError
+	if err != nil {
+		return err
+	}
+
+	app.logger.PrintInfo("stopped server", jsonlog.Properties{"addr": srv.Addr})
 
 	return nil
 }

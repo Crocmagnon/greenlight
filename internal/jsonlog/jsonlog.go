@@ -71,7 +71,6 @@ func (l *Logger) PrintFatal(err error, properties Properties) {
 	os.Exit(1)                                   //nolint:revive
 }
 
-//nolint:forbidigo
 func (l *Logger) print(level Level, message string, properties Properties) (int, error) {
 	if level < l.minLevel {
 		return 0, nil

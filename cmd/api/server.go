@@ -25,7 +25,6 @@ func (app *application) serve() error {
 	}
 
 	shutdownError := make(chan error)
-	_ = shutdownError
 
 	go func() {
 		quit := make(chan os.Signal, 1)
@@ -37,7 +36,14 @@ func (app *application) serve() error {
 		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 		defer cancel()
 
-		shutdownError <- srv.Shutdown(ctx)
+		err := srv.Shutdown(ctx)
+		if err != nil {
+			shutdownError <- err
+		}
+
+		app.logger.PrintInfo("completing background tasks", jsonlog.Properties{"addr": srv.Addr})
+		app.wg.Wait()
+		shutdownError <- nil
 	}()
 
 	app.logger.PrintInfo("starting server", jsonlog.Properties{

@@ -10,6 +10,7 @@ import (
 
 	"github.com/Crocmagnon/greenlight/internal/data"
 	"github.com/Crocmagnon/greenlight/internal/jsonlog"
+	"github.com/Crocmagnon/greenlight/internal/mailer"
 	_ "github.com/lib/pq"
 )
 
@@ -30,12 +31,20 @@ type config struct {
 		lastSeenMinutes int
 		enabled         bool
 	}
+	smtp struct {
+		host     string
+		port     int
+		username string
+		password string
+		sender   string
+	}
 }
 
 type application struct {
 	config config
 	logger *jsonlog.Logger
 	models data.Models
+	mailer mailer.Mailer
 }
 
 func main() {
@@ -56,6 +65,12 @@ func main() {
 	)
 	flag.BoolVar(&cfg.limiter.enabled, "limiter-enabled", true, "Enable rate limiter")
 
+	flag.StringVar(&cfg.smtp.host, "smtp-host", "127.0.0.1", "SMTP host")
+	flag.IntVar(&cfg.smtp.port, "smtp-port", 1025, "SMTP port")
+	flag.StringVar(&cfg.smtp.username, "smtp-username", "", "SMTP username")
+	flag.StringVar(&cfg.smtp.password, "smtp-password", "", "SMTP password")
+	flag.StringVar(&cfg.smtp.sender, "smtp-sender", "Greenlight <no-reply@greenlight.augendre.info>", "SMTP sender")
+
 	flag.Parse()
 
 	logger := jsonlog.New(os.Stdout, jsonlog.LevelInfo)
@@ -73,6 +88,7 @@ func main() {
 		config: cfg,
 		logger: logger,
 		models: data.NewModels(db),
+		mailer: mailer.New(cfg.smtp.host, cfg.smtp.port, cfg.smtp.username, cfg.smtp.password, cfg.smtp.sender),
 	}
 
 	err = app.serve()

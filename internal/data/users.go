@@ -2,6 +2,7 @@ package data
 
 import (
 	"context"
+	"crypto/sha256"
 	"database/sql"
 	"errors"
 	"fmt"
@@ -193,13 +194,50 @@ func (m UserModel) Update(user *User) error {
 	err := m.DB.QueryRowContext(ctx, query, args...).Scan(&user.Version)
 
 	switch {
+	case err == nil:
+		return nil
 	case err.Error() == `pq: duplicate key value violates unique constraint "users_email_key"`:
 		return ErrDuplicateEmail
 	case errors.Is(err, sql.ErrNoRows):
 		return ErrEditConflict
-	case err != nil:
+	default: // err != nil
 		return fmt.Errorf("updating user: %w", err)
 	}
+}
 
-	return nil
+func (m UserModel) GetForToken(tokenScope, tokenPlaintext string) (*User, error) {
+	tokenHash := sha256.Sum256([]byte(tokenPlaintext))
+	query := `
+		SELECT users.id, users.created_at, users.name, users.email, users.password_hash, users.activated, users.version
+		FROM users
+		INNER JOIN tokens
+		ON users.id = tokens.user_id
+		WHERE tokens.hash = $1
+		AND tokens.scope = $2 
+		AND tokens.expiry > $3`
+	args := []any{tokenHash[:], tokenScope, time.Now()}
+
+	var user User
+
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+
+	err := m.DB.QueryRowContext(ctx, query, args...).Scan(
+		&user.ID,
+		&user.CreatedAt,
+		&user.Name,
+		&user.Email,
+		&user.Password.hash,
+		&user.Activated,
+		&user.Version,
+	)
+
+	switch {
+	case errors.Is(err, sql.ErrNoRows):
+		return nil, ErrRecordNotFound
+	case err != nil:
+		return nil, fmt.Errorf("querying user for token: %w", err)
+	}
+
+	return &user, nil
 }

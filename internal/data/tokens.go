@@ -16,15 +16,17 @@ import (
 const (
 	// ScopeActivation is used to activate a user account.
 	ScopeActivation = "activation"
+	// ScopeAuthentication is used to authenticate users.
+	ScopeAuthentication = "authentication"
 )
 
 // A Token is used to activate a User account.
 type Token struct {
-	Plaintext string
-	Hash      []byte
-	UserID    int64
-	Expiry    time.Time
-	Scope     string
+	Plaintext string    `json:"token"`
+	Hash      []byte    `json:"-"`
+	UserID    int64     `json:"-"`
+	Expiry    time.Time `json:"expiry"`
+	Scope     string    `json:"-"`
 }
 
 func generateToken(userID int64, ttl time.Duration, scope string) (*Token, error) {

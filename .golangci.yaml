@@ -19,6 +19,7 @@ linters:
     - structcheck
     - nosnakecase
     - maligned
+    - contextcheck
 issues:
   fix: true
   max-issues-per-linter: 0
@@ -28,17 +29,10 @@ issues:
       linters:
         - gosec
       text: G404  # use of weak random number generator (math/rand)
-    - path: cmd/api/main\.go
+    - path: cmd/api/(main|server)\.go
       linters:
         - gomnd
-    - path: cmd/api/main\.go
-      linters:
-        - revive
-      text: "add-constant: avoid magic numbers like"
-    - path: cmd/api/server\.go
-      linters:
-        - gomnd
-    - path: cmd/api/server\.go
+    - path: cmd/api/(main|server)\.go
       linters:
         - revive
       text: "add-constant: avoid magic numbers like"

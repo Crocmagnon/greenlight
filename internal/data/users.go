@@ -205,6 +205,7 @@ func (m UserModel) Update(user *User) error {
 	}
 }
 
+// GetForToken retrieves a user given a plaintext token and its scope.
 func (m UserModel) GetForToken(tokenScope, tokenPlaintext string) (*User, error) {
 	tokenHash := sha256.Sum256([]byte(tokenPlaintext))
 	query := `

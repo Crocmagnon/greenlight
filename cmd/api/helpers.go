@@ -163,7 +163,7 @@ func (*application) readInt(qs url.Values, key string, defaultValue int, validat
 	return i
 }
 
-func (app *application) background(fn func()) {
+func (app *application) background(callback func()) {
 	app.wg.Add(1)
 
 	go func() {
@@ -175,6 +175,6 @@ func (app *application) background(fn func()) {
 			}
 		}()
 
-		fn()
+		callback()
 	}()
 }

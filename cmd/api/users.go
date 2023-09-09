@@ -9,6 +9,7 @@ import (
 	"github.com/Crocmagnon/greenlight/internal/validator"
 )
 
+//nolint:funlen
 func (app *application) registerUserHandler(w http.ResponseWriter, r *http.Request) {
 	var input struct {
 		Name     string `json:"name"`
@@ -88,35 +89,33 @@ func (app *application) activateUserHandler(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	v := validator.New()
+	validate := validator.New()
 
-	if data.ValidateTokenPlaintext(v, input.TokenPlaintext); !v.Valid() {
-		app.failedValidationResponse(w, r, v.Errors)
+	if data.ValidateTokenPlaintext(validate, input.TokenPlaintext); !validate.Valid() {
+		app.failedValidationResponse(w, r, validate.Errors)
 		return
 	}
 
 	user, err := app.models.Users.GetForToken(data.ScopeActivation, input.TokenPlaintext)
-	if err != nil {
-		switch {
-		case errors.Is(err, data.ErrRecordNotFound):
-			v.AddError("token", "invalid or expired activation token")
-			app.failedValidationResponse(w, r, v.Errors)
-		default:
-			app.serverErrorResponse(w, r, err)
-		}
-		return
+
+	switch {
+	case errors.Is(err, data.ErrRecordNotFound):
+		validate.AddError("token", "invalid or expired activation token")
+		app.failedValidationResponse(w, r, validate.Errors)
+	case err != nil:
+		app.serverErrorResponse(w, r, err)
 	}
 
 	user.Activated = true
 
 	err = app.models.Users.Update(user)
-	if err != nil {
-		switch {
-		case errors.Is(err, data.ErrEditConflict):
-			app.editConflictResponse(w, r)
-		default:
-			app.serverErrorResponse(w, r, err)
-		}
+
+	switch {
+	case errors.Is(err, data.ErrEditConflict):
+		app.editConflictResponse(w, r)
+		return
+	case err != nil:
+		app.serverErrorResponse(w, r, err)
 		return
 	}
 

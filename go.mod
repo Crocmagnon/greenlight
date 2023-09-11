@@ -1,6 +1,6 @@
 module github.com/Crocmagnon/greenlight
 
-go 1.21.1
+go 1.21
 
 require (
 	github.com/go-mail/mail/v2 v2.3.0

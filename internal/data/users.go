@@ -16,6 +16,11 @@ import (
 // if there's already another user with the same email address.
 var ErrDuplicateEmail = errors.New("duplicate email")
 
+// AnonymousUser is a sentinel variable to check whether a user is authenticated or not.
+//
+//nolint:gochecknoglobals
+var AnonymousUser = &User{}
+
 // A User represents a single user of our service, as stored in the DB.
 type User struct {
 	ID        int64     `json:"id"`
@@ -25,6 +30,11 @@ type User struct {
 	Password  password  `json:"-"`
 	Activated bool      `json:"activated"`
 	Version   int       `json:"-"`
+}
+
+// IsAnonymous returns true if the User is the AnonymousUser.
+func (u *User) IsAnonymous() bool {
+	return u == AnonymousUser
 }
 
 type password struct {

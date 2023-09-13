@@ -3,15 +3,10 @@ package main
 import (
 	"fmt"
 	"net/http"
-
-	"github.com/Crocmagnon/greenlight/internal/jsonlog"
 )
 
 func (app *application) logError(r *http.Request, err error) {
-	app.logger.PrintError(err, jsonlog.Properties{
-		"request_method": r.Method,
-		"request_url":    r.URL.String(),
-	})
+	app.logger.Error(err.Error(), "method", r.Method, "url", r.URL.RequestURI())
 }
 
 func (app *application) errorResponse(w http.ResponseWriter, r *http.Request, status int, message any) {

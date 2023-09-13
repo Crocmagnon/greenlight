@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/Crocmagnon/greenlight/internal/data"
-	"github.com/Crocmagnon/greenlight/internal/jsonlog"
 	"github.com/Crocmagnon/greenlight/internal/validator"
 	"golang.org/x/time/rate"
 )
@@ -48,11 +47,11 @@ func (app *application) rateLimit(next http.Handler) http.Handler {
 
 	go func() {
 		for range ticker.C {
-			app.logger.PrintInfo("ticking", nil)
+			app.logger.Info("ticking")
 			mu.Lock()
 			for ip, client := range clients {
 				if time.Since(client.lastSeen) > time.Duration(app.config.limiter.lastSeenMinutes)*time.Minute {
-					app.logger.PrintInfo("deleting ip", jsonlog.Properties{"ip": ip})
+					app.logger.Info("deleting ip", "ip", ip)
 					delete(clients, ip)
 				}
 			}
@@ -87,7 +86,6 @@ func (app *application) rateLimit(next http.Handler) http.Handler {
 	})
 }
 
-//nolint:gocognit
 func (app *application) authenticate(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Add("Vary", "Authorization")

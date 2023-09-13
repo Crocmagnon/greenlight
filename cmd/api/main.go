@@ -5,12 +5,12 @@ import (
 	"database/sql"
 	"flag"
 	"fmt"
+	"log/slog"
 	"os"
 	"sync"
 	"time"
 
 	"github.com/Crocmagnon/greenlight/internal/data"
-	"github.com/Crocmagnon/greenlight/internal/jsonlog"
 	"github.com/Crocmagnon/greenlight/internal/mailer"
 	_ "github.com/lib/pq"
 )
@@ -43,7 +43,7 @@ type config struct {
 
 type application struct {
 	config config
-	logger *jsonlog.Logger
+	logger *slog.Logger
 	models data.Models
 	mailer mailer.Mailer
 	wg     sync.WaitGroup
@@ -75,16 +75,17 @@ func main() {
 
 	flag.Parse()
 
-	logger := jsonlog.New(os.Stdout, jsonlog.LevelInfo)
+	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
 
 	db, err := openDB(cfg)
 	if err != nil {
-		logger.PrintFatal(err, nil)
+		logger.Error(err.Error())
+		os.Exit(1)
 	}
 
 	defer db.Close() //nolint:errcheck
 
-	logger.PrintInfo("database connection established", nil)
+	logger.Info("database connection established")
 
 	app := &application{
 		config: cfg,
@@ -95,7 +96,8 @@ func main() {
 
 	err = app.serve()
 	if err != nil {
-		logger.PrintFatal(err, nil)
+		logger.Error(err.Error())
+		os.Exit(1) //nolint:gocritic
 	}
 }
 

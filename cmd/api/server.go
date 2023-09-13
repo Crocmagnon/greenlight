@@ -4,14 +4,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log"
 	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
-
-	"github.com/Crocmagnon/greenlight/internal/jsonlog"
 )
 
 func (app *application) serve() error {
@@ -21,7 +18,6 @@ func (app *application) serve() error {
 		IdleTimeout:  time.Minute,
 		ReadTimeout:  5 * time.Second,
 		WriteTimeout: 10 * time.Second,
-		ErrorLog:     log.New(app.logger, "", 0),
 	}
 
 	shutdownError := make(chan error)
@@ -31,7 +27,7 @@ func (app *application) serve() error {
 		signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 		s := <-quit
 
-		app.logger.PrintInfo("shutting down server", jsonlog.Properties{"signal": s.String()})
+		app.logger.Info("caught signal", "signal", s.String())
 
 		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 		defer cancel()
@@ -41,15 +37,12 @@ func (app *application) serve() error {
 			shutdownError <- err
 		}
 
-		app.logger.PrintInfo("completing background tasks", jsonlog.Properties{"addr": srv.Addr})
+		app.logger.Info("completing background tasks", "addr", srv.Addr)
 		app.wg.Wait()
 		shutdownError <- nil
 	}()
 
-	app.logger.PrintInfo("starting server", jsonlog.Properties{
-		"addr": srv.Addr,
-		"env":  app.config.env,
-	})
+	app.logger.Info("starting server", "addr", srv.Addr, "env", app.config.env)
 
 	err := srv.ListenAndServe()
 	if !errors.Is(err, http.ErrServerClosed) {
@@ -61,7 +54,7 @@ func (app *application) serve() error {
 		return err
 	}
 
-	app.logger.PrintInfo("stopped server", jsonlog.Properties{"addr": srv.Addr})
+	app.logger.Info("stopped server", "addr", srv.Addr)
 
 	return nil
 }

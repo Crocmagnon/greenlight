@@ -171,7 +171,7 @@ func (app *application) background(callback func()) {
 
 		defer func() {
 			if err := recover(); err != nil {
-				app.logger.PrintError(fmt.Errorf("%s", err), nil) //nolint:goerr113
+				app.logger.Error(fmt.Sprintf("%v", err))
 			}
 		}()
 

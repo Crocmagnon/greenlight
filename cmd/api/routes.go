@@ -14,11 +14,11 @@ func (app *application) routes() http.Handler {
 
 	router.HandlerFunc(http.MethodGet, "/v1/healthcheck", app.healthcheckHandler)
 
-	router.Handler(http.MethodPost, "/v1/movies", app.requireActivatedUser(app.createMovieHandler))
-	router.Handler(http.MethodGet, "/v1/movies", app.requireActivatedUser(app.listMoviesHandler))
-	router.Handler(http.MethodGet, "/v1/movies/:id", app.requireActivatedUser(app.showMovieHandler))
-	router.Handler(http.MethodPatch, "/v1/movies/:id", app.requireActivatedUser(app.updateMovieHandler))
-	router.Handler(http.MethodDelete, "/v1/movies/:id", app.requireActivatedUser(app.deleteMovieHandler))
+	router.Handler(http.MethodGet, "/v1/movies", app.requirePermission("movies:read", app.listMoviesHandler))
+	router.Handler(http.MethodPost, "/v1/movies", app.requirePermission("movies:write", app.createMovieHandler))
+	router.Handler(http.MethodGet, "/v1/movies/:id", app.requirePermission("movies:read", app.showMovieHandler))
+	router.Handler(http.MethodPatch, "/v1/movies/:id", app.requirePermission("movies:write", app.updateMovieHandler))
+	router.Handler(http.MethodDelete, "/v1/movies/:id", app.requirePermission("movies:write", app.deleteMovieHandler))
 
 	router.HandlerFunc(http.MethodPost, "/v1/users", app.registerUserHandler)
 	router.HandlerFunc(http.MethodPut, "/v1/users/activated", app.activateUserHandler)

@@ -15,17 +15,19 @@ var (
 
 // Models holds all model interfaces.
 type Models struct {
-	Movies MovieModel
-	Tokens TokenModel
-	Users  UserModel
+	Movies      MovieModel
+	Tokens      TokenModel
+	Users       UserModel
+	Permissions PermissionModel
 }
 
 // NewModels initializes Models with the proper implementations
 // for production use.
 func NewModels(db *sql.DB) Models {
 	return Models{
-		Movies: MovieModel{DB: db},
-		Tokens: TokenModel{DB: db},
-		Users:  UserModel{DB: db},
+		Movies:      MovieModel{DB: db},
+		Tokens:      TokenModel{DB: db},
+		Users:       UserModel{DB: db},
+		Permissions: PermissionModel{DB: db},
 	}
 }

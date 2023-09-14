@@ -1,3 +1,5 @@
+github.com/a-h/templ v0.2.334 h1:/mKupkgHGeSSeC0KiGRvmUoRGQJuku9VGVhRP1CeWgY=
+github.com/a-h/templ v0.2.334/go.mod h1:6Lfhsl3Z4/vXl7jjEjkJRCqoWDGjDnuKgzjYMDSddas=
 github.com/go-mail/mail/v2 v2.3.0 h1:wha99yf2v3cpUzD1V9ujP404Jbw2uEvs+rBJybkdYcw=
 github.com/go-mail/mail/v2 v2.3.0/go.mod h1:oE2UK8qebZAjjV1ZYUpY7FPnbi/kIU53l1dmqPRb4go=
 github.com/julienschmidt/httprouter v1.3.0 h1:U0609e9tgbseu3rBINet9P48AI/D3oJs4dN7jwJOQ1U=

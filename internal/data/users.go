@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/Crocmagnon/greenlight/internal/validator"
+	"github.com/jmoiron/sqlx"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -23,13 +24,13 @@ var AnonymousUser = &User{}
 
 // A User represents a single user of our service, as stored in the DB.
 type User struct {
-	ID        int64     `json:"id"`
-	CreatedAt time.Time `json:"createdAt"`
-	Name      string    `json:"name"`
-	Email     string    `json:"email"`
-	Password  password  `json:"-"`
-	Activated bool      `json:"activated"`
-	Version   int       `json:"-"`
+	ID        int64     `db:"id"         json:"id"`
+	CreatedAt time.Time `db:"created_at" json:"createdAt"`
+	Name      string    `db:"name"       json:"name"`
+	Email     string    `db:"email"      json:"email"`
+	Password  password  `db:"-"          json:"-"`
+	Activated bool      `db:"activated"  json:"activated"`
+	Version   int       `db:"version"    json:"-"`
 }
 
 // IsAnonymous returns true if the User is the AnonymousUser.
@@ -120,7 +121,7 @@ func ValidateUser(v *validator.Validator, user *User) {
 
 // UserModel implements methods to query the database.
 type UserModel struct {
-	DB *sql.DB
+	DB *sqlx.DB
 }
 
 // Insert inserts a user in the DB.
@@ -134,8 +135,7 @@ func (m UserModel) Insert(user *User) error {
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
-	//nolint:execinquery // False positive
-	err := m.DB.QueryRowContext(ctx, query, args...).Scan(&user.ID, &user.CreatedAt, &user.Version)
+	err := m.DB.GetContext(ctx, user, query, args...)
 	if err != nil {
 		switch {
 		case err.Error() == `pq: duplicate key value violates unique constraint "users_email_key"`:
@@ -200,8 +200,7 @@ func (m UserModel) Update(user *User) error {
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
-	//nolint:execinquery // False positive
-	err := m.DB.QueryRowContext(ctx, query, args...).Scan(&user.Version)
+	err := m.DB.GetContext(ctx, &user.Version, query, args...)
 
 	switch {
 	case err == nil:
@@ -228,10 +227,10 @@ func (m UserModel) GetForToken(tokenScope, tokenPlaintext string) (*User, error)
 		AND tokens.expiry > $3`
 	args := []any{tokenHash[:], tokenScope, time.Now()}
 
-	var user User
-
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
+
+	var user User
 
 	err := m.DB.QueryRowContext(ctx, query, args...).Scan(
 		&user.ID,

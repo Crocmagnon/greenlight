@@ -2,10 +2,10 @@ package data
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
 	"slices"
 
+	"github.com/jmoiron/sqlx"
 	"github.com/lib/pq"
 )
 
@@ -21,7 +21,7 @@ func (p Permissions) Include(code string) bool {
 
 // PermissionModel implements methods to query the database.
 type PermissionModel struct {
-	DB *sql.DB
+	DB *sqlx.DB
 }
 
 // GetAllForUser returns all permission codes the user passed
@@ -37,28 +37,11 @@ func (m PermissionModel) GetAllForUser(userID int64) (Permissions, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
-	rows, err := m.DB.QueryContext(ctx, query, userID)
-	if err != nil {
-		return nil, fmt.Errorf("querying permissions: %w", err)
-	}
-
-	defer rows.Close() //nolint:errcheck
-
 	var permissions Permissions
 
-	for rows.Next() {
-		var perm string
-
-		err := rows.Scan(&perm) //nolint:govet // intentionally shadowing the var
-		if err != nil {
-			return nil, fmt.Errorf("scanning permission: %w", err)
-		}
-
-		permissions = append(permissions, perm)
-	}
-
-	if err = rows.Err(); err != nil {
-		return nil, fmt.Errorf("iterating over permissions: %w", err)
+	err := m.DB.SelectContext(ctx, &permissions, query, userID)
+	if err != nil {
+		return nil, fmt.Errorf("querying permissions: %w", err)
 	}
 
 	return permissions, nil

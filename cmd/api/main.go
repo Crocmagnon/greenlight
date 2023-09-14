@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"database/sql"
 	"flag"
 	"fmt"
 	"log/slog"
@@ -12,6 +11,7 @@ import (
 
 	"github.com/Crocmagnon/greenlight/internal/data"
 	"github.com/Crocmagnon/greenlight/internal/mailer"
+	"github.com/jmoiron/sqlx"
 	_ "github.com/lib/pq"
 )
 
@@ -101,8 +101,8 @@ func main() {
 	}
 }
 
-func openDB(cfg config) (*sql.DB, error) {
-	db, err := sql.Open("postgres", cfg.db.dsn)
+func openDB(cfg config) (*sqlx.DB, error) {
+	db, err := sqlx.Open("postgres", cfg.db.dsn)
 	if err != nil {
 		return nil, fmt.Errorf("opening DB connection: %w", err)
 	}

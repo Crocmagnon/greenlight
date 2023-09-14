@@ -4,12 +4,12 @@ import (
 	"context"
 	"crypto/rand"
 	"crypto/sha256"
-	"database/sql"
 	"encoding/base32"
 	"fmt"
 	"time"
 
 	"github.com/Crocmagnon/greenlight/internal/validator"
+	"github.com/jmoiron/sqlx"
 )
 
 // Scopes are used to limit the use cases of tokens.
@@ -63,7 +63,7 @@ func ValidateTokenPlaintext(v *validator.Validator, tokenPlaintext string) {
 
 // TokenModel implements methods to query the database.
 type TokenModel struct {
-	DB *sql.DB
+	DB *sqlx.DB
 }
 
 // New creates a token and stores it in the DB.

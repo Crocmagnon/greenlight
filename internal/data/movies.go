@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/Crocmagnon/greenlight/internal/validator"
+	"github.com/jmoiron/sqlx"
 	"github.com/lib/pq"
 )
 
@@ -16,13 +17,13 @@ const timeout = 3 * time.Second
 // Movie holds information about a single movie.
 // It represents the entity as stored in the DB.
 type Movie struct {
-	ID        int64     `json:"id"`
-	CreatedAt time.Time `json:"-"`
-	Title     string    `json:"title"`
-	Year      int32     `json:"year,omitempty"`
-	Runtime   Runtime   `json:"runtime,omitempty"`
-	Genres    []string  `json:"genres,omitempty"`
-	Version   int32     `json:"version"`
+	ID        int64          `db:"id"         json:"id"`
+	CreatedAt time.Time      `db:"created_at" json:"-"`
+	Title     string         `db:"title"      json:"title"`
+	Year      int32          `db:"year"       json:"year,omitempty"`
+	Runtime   Runtime        `db:"runtime"    json:"runtime,omitempty"`
+	Genres    pq.StringArray `db:"genres"     json:"genres,omitempty"`
+	Version   int32          `db:"version"    json:"version"`
 }
 
 // ValidateMovie validates a movie.
@@ -60,7 +61,7 @@ func ValidateMovie(validate *validator.Validator, movie *Movie) {
 
 // MovieModel implements methods to query the database.
 type MovieModel struct {
-	DB *sql.DB
+	DB *sqlx.DB
 }
 
 // Insert inserts a movie in the database.
@@ -75,8 +76,7 @@ func (m MovieModel) Insert(movie *Movie) error {
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
-	//nolint:execinquery // False positive
-	err := m.DB.QueryRowContext(ctx, query, args...).Scan(&movie.ID, &movie.CreatedAt, &movie.Version)
+	err := m.DB.GetContext(ctx, movie, query, args...)
 	if err != nil {
 		return fmt.Errorf("inserting movie in DB: %w", err)
 	}
@@ -101,15 +101,7 @@ func (m MovieModel) Get(id int64) (*Movie, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
-	err := m.DB.QueryRowContext(ctx, query, id).Scan(
-		&movie.ID,
-		&movie.CreatedAt,
-		&movie.Title,
-		&movie.Year,
-		&movie.Runtime,
-		pq.Array(&movie.Genres),
-		&movie.Version,
-	)
+	err := m.DB.GetContext(ctx, &movie, query, id)
 
 	switch {
 	case errors.Is(err, sql.ErrNoRows):
@@ -141,8 +133,7 @@ func (m MovieModel) Update(movie *Movie) error {
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
-	//nolint:execinquery // False positive
-	err := m.DB.QueryRowContext(ctx, query, args...).Scan(&movie.Version)
+	err := m.DB.GetContext(ctx, &movie.Version, query, args...)
 
 	switch {
 	case errors.Is(err, sql.ErrNoRows):
@@ -184,8 +175,7 @@ func (m MovieModel) Delete(id int64) error {
 
 // GetAll returns a filtered list of movies from the DB.
 func (m MovieModel) GetAll(title string, genres []string, filters Filters) ([]*Movie, Metadata, error) {
-	//nolint:gosec // We're filtering against a list of known safe values to prevent SQL injections.
-	query := fmt.Sprintf(`SELECT count(*) OVER(), id, created_at, title, year, runtime, genres, version
+	query := fmt.Sprintf(`SELECT count(*) OVER() AS total_records, id, created_at, title, year, runtime, genres, version
 		FROM movies
 		WHERE (to_tsvector('simple', title) @@ plainto_tsquery('simple', $1) OR $1 = '')
 		AND (genres @> $2 OR $2 = '{}')
@@ -198,7 +188,7 @@ func (m MovieModel) GetAll(title string, genres []string, filters Filters) ([]*M
 	ctx, cancel := context.WithTimeout(context.Background(), dbTimeout)
 	defer cancel()
 
-	rows, err := m.DB.QueryContext(ctx, query, args...)
+	rows, err := m.DB.QueryxContext(ctx, query, args...)
 	if err != nil {
 		return nil, Metadata{}, fmt.Errorf("listing movies: %w", err)
 	}
@@ -209,23 +199,18 @@ func (m MovieModel) GetAll(title string, genres []string, filters Filters) ([]*M
 	movies := []*Movie{}
 
 	for rows.Next() {
-		var movie Movie
+		var movie struct {
+			TotalRecords int `db:"total_records"`
+			Movie
+		}
 
-		err := rows.Scan( //nolint:govet // intentionally shadowing the var
-			&totalRecords,
-			&movie.ID,
-			&movie.CreatedAt,
-			&movie.Title,
-			&movie.Year,
-			&movie.Runtime,
-			pq.Array(&movie.Genres),
-			&movie.Version,
-		)
+		err = rows.StructScan(&movie)
 		if err != nil {
 			return nil, Metadata{}, fmt.Errorf("scanning movie: %w", err)
 		}
 
-		movies = append(movies, &movie)
+		totalRecords = movie.TotalRecords
+		movies = append(movies, &movie.Movie)
 	}
 
 	if err = rows.Err(); err != nil {

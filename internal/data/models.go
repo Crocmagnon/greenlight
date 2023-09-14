@@ -1,8 +1,9 @@
 package data
 
 import (
-	"database/sql"
 	"errors"
+
+	"github.com/jmoiron/sqlx"
 )
 
 var (
@@ -23,7 +24,7 @@ type Models struct {
 
 // NewModels initializes Models with the proper implementations
 // for production use.
-func NewModels(db *sql.DB) Models {
+func NewModels(db *sqlx.DB) Models {
 	return Models{
 		Movies:      MovieModel{DB: db},
 		Tokens:      TokenModel{DB: db},

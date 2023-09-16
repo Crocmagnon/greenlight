@@ -9,6 +9,12 @@ help:
 run:
 	@go run ./cmd/api -db-dsn $(GREENLIGHT_DB_DSN)
 
+## build: build the cmd/api application
+.PHONY: build
+build:
+	go build -ldflags='-s -w' -o=./bin/api ./cmd/api
+	GOOS=linux GOARCH=amd64 go build -ldflags='-s -w' -o=./bin/api-linux-amd64 ./cmd/api
+
 ## test: run tests
 .PHONY: test
 test:

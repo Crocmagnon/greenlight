@@ -32,6 +32,7 @@ issues:
     - path: cmd/api/(main|server)\.go
       linters:
         - gomnd
+        - forbidigo
     - path: cmd/api/(main|server)\.go
       linters:
         - revive

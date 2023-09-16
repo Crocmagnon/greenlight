@@ -13,11 +13,12 @@ import (
 
 	"github.com/Crocmagnon/greenlight/internal/data"
 	"github.com/Crocmagnon/greenlight/internal/mailer"
+	"github.com/Crocmagnon/greenlight/internal/vcs"
 	"github.com/jmoiron/sqlx"
 	_ "github.com/lib/pq"
 )
 
-const version = "1.0.0"
+var version = vcs.Version()
 
 type config struct {
 	addr string
@@ -78,7 +79,14 @@ func main() {
 
 	flag.BoolVar(&cfg.metricsEnabled, "metrics-enabled", true, "Enable metrics endpoint")
 
+	displayVersion := flag.Bool("version", false, "Display version and exit")
+
 	flag.Parse()
+
+	if *displayVersion {
+		fmt.Printf("Version: \t%v\n", version)
+		os.Exit(0)
+	}
 
 	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
 

@@ -14,11 +14,6 @@ run:
 test:
 	go test ./...
 
-## lint: run linter
-.PHONY: lint
-lint:
-	golangci-lint run
-
 ## migration name=$1: create a new DB migration
 .PHONY: migration
 migration:
@@ -33,3 +28,18 @@ migrate:
 .PHONY: psql
 psql:
 	psql $(GREENLIGHT_DB_DSN)
+
+## lint: run linter
+.PHONY: lint
+lint:
+	@echo 'Tidying and verifying module dependencies...'
+	go mod tidy
+	go mod verify
+	@echo 'Formatting code...'
+	go fmt ./...
+	@echo 'Vetting code...'
+	go vet ./...
+	staticcheck ./...
+	golangci-lint run
+	@echo 'Running tests...'
+	go test -race -vet=off ./...

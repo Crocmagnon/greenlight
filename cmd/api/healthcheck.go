@@ -5,12 +5,6 @@ import (
 )
 
 func (app *application) healthcheckHandler(w http.ResponseWriter, r *http.Request) {
-	err := app.models.Movies.DB.Ping()
-	if err != nil {
-		app.serverErrorResponse(w, r, err)
-		return
-	}
-
 	data := envelope{
 		"status": "available",
 		"system_info": map[string]string{
@@ -19,7 +13,7 @@ func (app *application) healthcheckHandler(w http.ResponseWriter, r *http.Reques
 		},
 	}
 
-	err = app.writeJSON(w, http.StatusOK, data, nil)
+	err := app.writeJSON(w, http.StatusOK, data, nil)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 	}

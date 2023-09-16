@@ -193,7 +193,7 @@ func (m MovieModel) GetAll(title string, genres []string, filters Filters) ([]*M
 		return nil, Metadata{}, fmt.Errorf("listing movies: %w", err)
 	}
 
-	defer rows.Close() //nolint:errcheck // we wouldn't do anything with this err
+	defer rows.Close()
 
 	totalRecords := 0
 	movies := []*Movie{}

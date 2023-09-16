@@ -41,6 +41,7 @@ type config struct {
 		password string
 		sender   string
 	}
+	metricsEnabled bool
 }
 
 type application struct {
@@ -75,6 +76,8 @@ func main() {
 	flag.StringVar(&cfg.smtp.password, "smtp-password", "", "SMTP password")
 	flag.StringVar(&cfg.smtp.sender, "smtp-sender", "Greenlight <no-reply@greenlight.augendre.info>", "SMTP sender")
 
+	flag.BoolVar(&cfg.metricsEnabled, "metrics-enabled", true, "Enable metrics endpoint")
+
 	flag.Parse()
 
 	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
@@ -85,20 +88,9 @@ func main() {
 		os.Exit(1)
 	}
 
-	defer db.Close() //nolint:errcheck
+	defer db.Close()
 
 	logger.Info("database connection established")
-
-	expvar.NewString("version").Set(version)
-	expvar.Publish("goroutines", expvar.Func(func() any {
-		return runtime.NumGoroutine()
-	}))
-	expvar.Publish("database", expvar.Func(func() any {
-		return db.Stats()
-	}))
-	expvar.Publish("timestamp", expvar.Func(func() any {
-		return time.Now().Unix()
-	}))
 
 	app := &application{
 		config: cfg,
@@ -106,12 +98,26 @@ func main() {
 		models: data.NewModels(db),
 		mailer: mailer.New(cfg.smtp.host, cfg.smtp.port, cfg.smtp.username, cfg.smtp.password, cfg.smtp.sender),
 	}
+	app.setupMetrics()
 
 	err = app.serve()
 	if err != nil {
 		logger.Error(err.Error())
 		os.Exit(1) //nolint:gocritic
 	}
+}
+
+func (app *application) setupMetrics() {
+	expvar.NewString("version").Set(version)
+	expvar.Publish("goroutines", expvar.Func(func() any {
+		return runtime.NumGoroutine()
+	}))
+	expvar.Publish("database", expvar.Func(func() any {
+		return app.models.Movies.DB.Stats()
+	}))
+	expvar.Publish("timestamp", expvar.Func(func() any {
+		return time.Now().Unix()
+	}))
 }
 
 func openDB(cfg config) (*sqlx.DB, error) {

@@ -1,14 +1,8 @@
 repos:
   - repo: local
     hooks:
-      - id: test
-        name: go test
-        entry: go test ./...
-        language: system
-        pass_filenames: false
-        types_or: [go]
-      - id: test
-        name: golangci-lint
+      - id: audit
+        name: audit
         entry: make lint
         language: system
         pass_filenames: false

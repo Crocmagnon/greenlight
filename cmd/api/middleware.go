@@ -28,7 +28,6 @@ func (app *application) recoverPanic(next http.Handler) http.Handler {
 	})
 }
 
-//nolint:gocognit
 func (app *application) rateLimit(next http.Handler) http.Handler {
 	if !app.config.limiter.enabled {
 		return next
@@ -176,12 +175,14 @@ func (app *application) requirePermission(code string, next http.HandlerFunc) ht
 	return app.requireActivatedUser(handler)
 }
 
-func (*application) metrics(next http.Handler) http.Handler {
-	var (
-		totalRequestsReceived           = expvar.NewInt("total_requests_received")
-		totalResponsesSent              = expvar.NewInt("total_responses_sent")
-		totalProcessingTimeMicroseconds = expvar.NewInt("total_processing_time_μs")
-	)
+func (app *application) metrics(next http.Handler) http.Handler {
+	if !app.config.metricsEnabled {
+		return next
+	}
+
+	totalRequestsReceived := expvar.NewInt("total_requests_received")
+	totalResponsesSent := expvar.NewInt("total_responses_sent")
+	totalProcessingTimeMicroseconds := expvar.NewInt("total_processing_time_μs")
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()
